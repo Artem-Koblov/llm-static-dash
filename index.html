@@ -455,122 +455,149 @@
     </div>
 
     <script>
-        const DATES = ['30.01', '6.02', '13.02', '20.02', '27.02'];
+        document.addEventListener('DOMContentLoaded', function() {
+            const DATES = ['30.01', '6.02', '13.02', '20.02', '27.02'];
 
-        Chart.defaults.font.family = "'Inter', sans-serif";
-        Chart.defaults.font.size = 11;
-        Chart.defaults.plugins.legend.labels.usePointStyle = true;
-        Chart.defaults.plugins.legend.labels.pointStyleWidth = 8;
+            // Проверяем, загрузилась ли Chart.js
+            if (typeof Chart === 'undefined') {
+                console.error('Ошибка: Chart.js не загрузилась! Проверьте ссылку на CDN.');
+                return;
+            }
 
-        const gridColor = '#f3f4f6';
-        const gridBorder = '#e5e7eb';
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.font.size = 11;
+            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+            Chart.defaults.plugins.legend.labels.pointStyleWidth = 8;
 
-        new Chart(document.getElementById('migrationChart'), {
-            type: 'line',
-            data: {
-                labels: DATES,
-                datasets: [
-                    {
-                        label: 'Non-voice',
-                        data: [0, 20, 20, null, 20],
-                        borderColor: '#2563eb',
-                        backgroundColor: 'rgba(37,99,235,0.08)',
-                        fill: true, tension: 0.3,
-                        pointRadius: 4, pointHoverRadius: 6,
-                        pointBackgroundColor: '#2563eb',
-                        borderWidth: 2, spanGaps: true,
+            const gridColor = '#f3f4f6';
+            const gridBorder = '#e5e7eb';
+
+            // График миграции сценариев
+            new Chart(document.getElementById('migrationChart'), {
+                type: 'line',
+                data: {
+                    labels: DATES,
+                    datasets: [
+                        {
+                            label: 'Non-voice',
+                            data: [0, 20, 20, null, 20],
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37,99,235,0.08)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#2563eb',
+                            borderWidth: 2,
+                            spanGaps: true,
+                        },
+                        {
+                            label: 'Voice',
+                            data: [0, 0, null, 20, 20],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245,158,11,0.08)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#f59e0b',
+                            borderWidth: 2,
+                            spanGaps: true,
+                        },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: '#1a1a2e',
+                            padding: 10,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(ctx) {
+                                    const totals = ctx.datasetIndex === 0
+                                        ? [77, 183, 183, 183, 183]
+                                        : [77, 171, 171, 171, 171];
+                                    return ctx.dataset.label + ': ' + ctx.parsed.y + ' / ' + totals[ctx.dataIndex];
+                                }
+                            }
+                        },
                     },
-                    {
-                        label: 'Voice',
-                        data: [0, 0, null, 20, 20],
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245,158,11,0.08)',
-                        fill: true, tension: 0.3,
-                        pointRadius: 4, pointHoverRadius: 6,
-                        pointBackgroundColor: '#f59e0b',
-                        borderWidth: 2, spanGaps: true,
-                    },
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    tooltip: {
-                        backgroundColor: '#1a1a2e',
-                        padding: 10, cornerRadius: 8,
-                        callbacks: {
-                            label: function(ctx) {
-                                const totals = ctx.datasetIndex === 0
-                                    ? [77, 183, 183, 183, 183]
-                                    : [77, 171, 171, 171, 171];
-                                return ctx.dataset.label + ': ' + ctx.parsed.y + ' / ' + totals[ctx.dataIndex];
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 242,
+                            title: { display: true, text: 'Сценариев', color: '#9ca3af', font: { size: 10 } },
+                            grid: { color: gridColor },
+                            border: { color: gridBorder },
+                            ticks: { color: '#9ca3af', font: { size: 10 } },
+                        },
+                        x: {
+                            grid: { color: gridColor },
+                            border: { color: gridBorder },
+                            ticks: {
+                                font: (ctx) => ({ size: 10, weight: ctx.tick.label === '27.02' ? '700' : '400' }),
+                                color: (ctx) => ctx.tick.label === '27.02' ? '#2563eb' : '#9ca3af',
                             }
                         }
-                    },
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true, max: 242,
-                        title: { display: true, text: 'Сценариев', color: '#9ca3af', font: { size: 10 } },
-                        grid: { color: gridColor }, border: { color: gridBorder },
-                        ticks: { color: '#9ca3af', font: { size: 10 } },
-                    },
-                    x: {
-                        grid: { color: gridColor }, border: { color: gridBorder },
-                        ticks: {
-                            font: (ctx) => ({ size: 10, weight: ctx.tick.label === '27.02' ? '700' : '400' }),
-                            color: (ctx) => ctx.tick.label === '27.02' ? '#2563eb' : '#9ca3af',
-                        }
                     }
                 }
-            }
-        });
+            });
 
-        new Chart(document.getElementById('latencyChart'), {
-            type: 'line',
-            data: {
-                labels: DATES,
-                datasets: [{
-                    label: 'Latency (макс.)',
-                    data: [90, 70, 60, null, 60],
-                    borderColor: '#8b5cf6',
-                    backgroundColor: 'rgba(139,92,246,0.08)',
-                    fill: true, tension: 0.3,
-                    pointRadius: 5, pointHoverRadius: 7,
-                    pointBackgroundColor: (ctx) => ctx.dataIndex === 4 ? '#8b5cf6' : '#c4b5fd',
-                    pointBorderColor: (ctx) => ctx.dataIndex === 4 ? '#8b5cf6' : '#c4b5fd',
-                    borderWidth: 2, spanGaps: true,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    tooltip: {
-                        backgroundColor: '#1a1a2e',
-                        padding: 10, cornerRadius: 8,
-                        callbacks: { label: (ctx) => 'до ' + ctx.parsed.y + ' сек' }
-                    },
+            // График Latency
+            new Chart(document.getElementById('latencyChart'), {
+                type: 'line',
+                data: {
+                    labels: DATES,
+                    datasets: [{
+                        label: 'Latency (макс.)',
+                        data: [90, 70, 60, null, 60],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139,92,246,0.08)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: (ctx) => ctx.dataIndex === 4 ? '#8b5cf6' : '#c4b5fd',
+                        pointBorderColor: (ctx) => ctx.dataIndex === 4 ? '#8b5cf6' : '#c4b5fd',
+                        borderWidth: 2,
+                        spanGaps: true,
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true, max: 100,
-                        title: { display: true, text: 'Секунды', color: '#9ca3af', font: { size: 10 } },
-                        grid: { color: gridColor }, border: { color: gridBorder },
-                        ticks: { color: '#9ca3af', font: { size: 10 } },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: '#1a1a2e',
+                            padding: 10,
+                            cornerRadius: 8,
+                            callbacks: { label: (ctx) => 'до ' + ctx.parsed.y + ' сек' }
+                        },
                     },
-                    x: {
-                        grid: { color: gridColor }, border: { color: gridBorder },
-                        ticks: {
-                            font: (ctx) => ({ size: 10, weight: ctx.tick.label === '27.02' ? '700' : '400' }),
-                            color: (ctx) => ctx.tick.label === '27.02' ? '#8b5cf6' : '#9ca3af',
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: 'Секунды', color: '#9ca3af', font: { size: 10 } },
+                            grid: { color: gridColor },
+                            border: { color: gridBorder },
+                            ticks: { color: '#9ca3af', font: { size: 10 } },
+                        },
+                        x: {
+                            grid: { color: gridColor },
+                            border: { color: gridBorder },
+                            ticks: {
+                                font: (ctx) => ({ size: 10, weight: ctx.tick.label === '27.02' ? '700' : '400' }),
+                                color: (ctx) => ctx.tick.label === '27.02' ? '#8b5cf6' : '#9ca3af',
+                            }
                         }
                     }
                 }
-            }
+            });
         });
     </script>
 </body>
