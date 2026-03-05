@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ДКС — Дэшборд миграции</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #f0f2f5;
+            --card: #ffffff;
+            --text: #1a1a2e;
+            --text-secondary: #6b7280;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --green: #10b981;
+            --green-light: #d1fae5;
+            --amber: #f59e0b;
+            --amber-light: #fef3c7;
+            --red: #ef4444;
+            --red-light: #fee2e2;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.07), 0 4px 10px rgba(0,0,0,0.04);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px 28px;
+        }
+
+        .dashboard {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .header .subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .header .date-badge {
+            background: var(--accent);
+            color: #fff;
+            padding: 6px 18px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        /* KPI Cards — single row of 7 */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .kpi-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+        .kpi-card:hover { box-shadow: var(--shadow-lg); }
+        .kpi-card .kpi-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+        .kpi-card .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 4px;
+        }
+        .kpi-card .kpi-value .unit {
+            font-size: 15px;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+        .kpi-card .kpi-detail {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .kpi-card .kpi-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+        .badge-green { background: var(--green-light); color: #065f46; }
+        .badge-amber { background: var(--amber-light); color: #92400e; }
+        .badge-red { background: var(--red-light); color: #991b1b; }
+        .badge-blue { background: var(--accent-light); color: #1e40af; }
+
+        .kpi-card .accent-stripe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 3px;
+            height: 100%;
+        }
+
+        /* Main content — charts + latency */
+        .main-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .chart-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+        .chart-card h3 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .chart-container {
+            position: relative;
+            height: 200px;
+        }
+
+        /* Latency Breakdown */
+        .latency-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+        .latency-card h3 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+        .latency-items {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .latency-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .latency-item .lat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            min-width: 110px;
+        }
+        .latency-item .lat-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+            min-width: 64px;
+            text-align: right;
+        }
+        .latency-bar-wrap {
+            flex: 1;
+            margin: 0 10px;
+            height: 5px;
+            background: #f3f4f6;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .latency-bar {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        /* Stage card */
+        .stage-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 0;
+        }
+        .stage-card h3 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .stage-timeline {
+            display: flex;
+            align-items: flex-start;
+            gap: 0;
+            position: relative;
+        }
+        .stage-timeline::before {
+            content: '';
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            right: 14px;
+            height: 2px;
+            background: var(--border);
+        }
+        .stage-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            padding-top: 32px;
+        }
+        .stage-step::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 8px;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--border);
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px var(--border);
+            z-index: 1;
+        }
+        .stage-step.completed::before {
+            background: var(--green);
+            box-shadow: 0 0 0 2px var(--green);
+        }
+        .stage-step.current::before {
+            background: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px rgba(37,99,235,0.15);
+        }
+        .stage-step .step-date {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stage-step .step-text {
+            font-size: 12px;
+            margin-top: 2px;
+            color: var(--text);
+        }
+        .stage-step.future .step-text {
+            color: var(--text-secondary);
+        }
+
+        /* TBD badge */
+        .tbd {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: #f3f4f6;
+            padding: 2px 10px;
+            border-radius: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Footnotes */
+        .footnotes {
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 1400px) {
+            .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+            .main-row { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 800px) {
+            body { padding: 12px; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .main-row { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>Миграция на новый движок ДКС</h1>
+                <div class="subtitle">Динамика ключевых показателей после переезда</div>
+            </div>
+            <div class="date-badge">Сегодня: 27 февраля 2026</div>
+        </div>
+
+        <!-- KPI Cards — one row -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="accent-stripe" style="background: var(--accent);"></div>
+                <div class="kpi-label">Non-voice сценарии</div>
+                <div class="kpi-value" style="color: var(--accent);">20<span class="unit"> / 183</span></div>
+                <div class="kpi-detail">мигрировано</div>
+                <div class="kpi-badge badge-blue">10.9%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="accent-stripe" style="background: var(--amber);"></div>
+                <div class="kpi-label">Voice сценарии</div>
+                <div class="kpi-value" style="color: var(--amber);">20<span class="unit">** / 171</span></div>
+                <div class="kpi-detail">мигрировано</div>
+                <div class="kpi-badge badge-amber">11.7%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="accent-stripe" style="background: var(--green);"></div>
+                <div class="kpi-label">Покрытие запросов</div>
+                <div class="kpi-value" style="color: var(--green);">36<span class="unit">%</span></div>
+                <div class="kpi-detail">с учётом частотности</div>
+                <div class="kpi-badge badge-green">&#9650; с 0%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="accent-stripe" style="background: #8b5cf6;"></div>
+                <div class="kpi-label">End2end Latency</div>
+                <div class="kpi-value" style="color: #8b5cf6;">60<span class="unit"> сек</span></div>
+                <div class="kpi-detail">макс. время ответа</div>
+                <div class="kpi-badge badge-green">&#9660; с 90 сек</div>
+            </div>
+            <div class="kpi-card">
+                <div class="accent-stripe" style="background: var(--green);"></div>
+                <div class="kpi-label">QCR 2.0</div>
+                <div class="kpi-value" style="color: var(--green);">26<span class="unit">%</span></div>
+                <div class="kpi-detail">было 25% на 30.01</div>
+                <div class="kpi-badge badge-green">&#9650; +1 п.п.</div>
+            </div>
+            <div class="kpi-card">
+                <div class="accent-stripe" style="background: var(--text-secondary);"></div>
+                <div class="kpi-label">Gross</div>
+                <div class="kpi-value"><span class="tbd">TBD</span></div>
+                <div class="kpi-detail" style="margin-top:6px;">базовое: 66%</div>
+                <div class="kpi-badge badge-amber">ожидает замера</div>
+            </div>
+            <div class="kpi-card">
+                <div class="accent-stripe" style="background: var(--text-secondary);"></div>
+                <div class="kpi-label">tNPS</div>
+                <div class="kpi-value"><span class="tbd">TBD</span></div>
+                <div class="kpi-detail" style="margin-top:6px;">базовое: −9%*</div>
+                <div class="kpi-badge badge-amber">ожидает замера</div>
+            </div>
+        </div>
+
+        <!-- Main row: 2 charts + latency + stage -->
+        <div class="main-row">
+            <div class="chart-card">
+                <h3>Миграция сценариев</h3>
+                <div class="chart-container">
+                    <canvas id="migrationChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>End2end Latency (сек)</h3>
+                <div class="chart-container">
+                    <canvas id="latencyChart"></canvas>
+                </div>
+            </div>
+            <div class="latency-card">
+                <h3>Детализация Latency на 27.02</h3>
+                <div class="latency-items">
+                    <div class="latency-item">
+                        <span class="lat-label">Коммуникативы</span>
+                        <div class="latency-bar-wrap">
+                            <div class="latency-bar" style="width: 8%; background: var(--green);"></div>
+                        </div>
+                        <span class="lat-value">до 5 сек</span>
+                    </div>
+                    <div class="latency-item">
+                        <span class="lat-label">Простые запросы</span>
+                        <div class="latency-bar-wrap">
+                            <div class="latency-bar" style="width: 17%; background: var(--accent);"></div>
+                        </div>
+                        <span class="lat-value">до 10 сек</span>
+                    </div>
+                    <div class="latency-item">
+                        <span class="lat-label">Сценарий оценки</span>
+                        <div class="latency-bar-wrap">
+                            <div class="latency-bar" style="width: 17%; background: var(--accent);"></div>
+                        </div>
+                        <span class="lat-value">до 10 сек</span>
+                    </div>
+                    <div class="latency-item">
+                        <span class="lat-label">Сложные запросы</span>
+                        <div class="latency-bar-wrap">
+                            <div class="latency-bar" style="width: 50%; background: var(--amber);"></div>
+                        </div>
+                        <span class="lat-value">до 30 сек</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage — horizontal bar -->
+        <div class="stage-card">
+            <h3>Стадия теста сценариев</h3>
+            <div class="stage-timeline">
+                <div class="stage-step completed">
+                    <div class="step-date">30.01</div>
+                    <div class="step-text">авто / внутр (85, R1) / с ДКС / комм. траф</div>
+                </div>
+                <div class="stage-step completed">
+                    <div class="step-date">6.02 — 13.02</div>
+                    <div class="step-text">авто</div>
+                </div>
+                <div class="stage-step current">
+                    <div class="step-date">27.02 — сегодня</div>
+                    <div class="step-text">авто / ручные</div>
+                </div>
+                <div class="stage-step future">
+                    <div class="step-date">6.03 — план</div>
+                    <div class="step-text">авто / с ДКС</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footnotes -->
+        <div class="footnotes">
+            * Не обладают стат. значимостью &nbsp;&middot;&nbsp;
+            ** Перенесли 20 в прототипе, но нужно полноценно перенести
+        </div>
+    </div>
+
+    <script>
+        const DATES = ['30.01', '6.02', '13.02', '20.02', '27.02'];
+
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 11;
+        Chart.defaults.plugins.legend.labels.usePointStyle = true;
+        Chart.defaults.plugins.legend.labels.pointStyleWidth = 8;
+
+        const gridColor = '#f3f4f6';
+        const gridBorder = '#e5e7eb';
+
+        new Chart(document.getElementById('migrationChart'), {
+            type: 'line',
+            data: {
+                labels: DATES,
+                datasets: [
+                    {
+                        label: 'Non-voice',
+                        data: [0, 20, 20, null, 20],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37,99,235,0.08)',
+                        fill: true, tension: 0.3,
+                        pointRadius: 4, pointHoverRadius: 6,
+                        pointBackgroundColor: '#2563eb',
+                        borderWidth: 2, spanGaps: true,
+                    },
+                    {
+                        label: 'Voice',
+                        data: [0, 0, null, 20, 20],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245,158,11,0.08)',
+                        fill: true, tension: 0.3,
+                        pointRadius: 4, pointHoverRadius: 6,
+                        pointBackgroundColor: '#f59e0b',
+                        borderWidth: 2, spanGaps: true,
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: '#1a1a2e',
+                        padding: 10, cornerRadius: 8,
+                        callbacks: {
+                            label: function(ctx) {
+                                const totals = ctx.datasetIndex === 0
+                                    ? [77, 183, 183, 183, 183]
+                                    : [77, 171, 171, 171, 171];
+                                return ctx.dataset.label + ': ' + ctx.parsed.y + ' / ' + totals[ctx.dataIndex];
+                            }
+                        }
+                    },
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true, max: 242,
+                        title: { display: true, text: 'Сценариев', color: '#9ca3af', font: { size: 10 } },
+                        grid: { color: gridColor }, border: { color: gridBorder },
+                        ticks: { color: '#9ca3af', font: { size: 10 } },
+                    },
+                    x: {
+                        grid: { color: gridColor }, border: { color: gridBorder },
+                        ticks: {
+                            font: (ctx) => ({ size: 10, weight: ctx.tick.label === '27.02' ? '700' : '400' }),
+                            color: (ctx) => ctx.tick.label === '27.02' ? '#2563eb' : '#9ca3af',
+                        }
+                    }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('latencyChart'), {
+            type: 'line',
+            data: {
+                labels: DATES,
+                datasets: [{
+                    label: 'Latency (макс.)',
+                    data: [90, 70, 60, null, 60],
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'rgba(139,92,246,0.08)',
+                    fill: true, tension: 0.3,
+                    pointRadius: 5, pointHoverRadius: 7,
+                    pointBackgroundColor: (ctx) => ctx.dataIndex === 4 ? '#8b5cf6' : '#c4b5fd',
+                    pointBorderColor: (ctx) => ctx.dataIndex === 4 ? '#8b5cf6' : '#c4b5fd',
+                    borderWidth: 2, spanGaps: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: '#1a1a2e',
+                        padding: 10, cornerRadius: 8,
+                        callbacks: { label: (ctx) => 'до ' + ctx.parsed.y + ' сек' }
+                    },
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true, max: 100,
+                        title: { display: true, text: 'Секунды', color: '#9ca3af', font: { size: 10 } },
+                        grid: { color: gridColor }, border: { color: gridBorder },
+                        ticks: { color: '#9ca3af', font: { size: 10 } },
+                    },
+                    x: {
+                        grid: { color: gridColor }, border: { color: gridBorder },
+                        ticks: {
+                            font: (ctx) => ({ size: 10, weight: ctx.tick.label === '27.02' ? '700' : '400' }),
+                            color: (ctx) => ctx.tick.label === '27.02' ? '#8b5cf6' : '#9ca3af',
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
